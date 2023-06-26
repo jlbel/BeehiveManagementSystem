@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -7,26 +8,32 @@ using System.Windows.Controls;
 
 namespace BeehiveManagementSystem
 {
-    class Queen : Bee
+    class Queen : Bee, INotifyPropertyChanged
     {
+        public const float EGGS_PER_SHIFT = 0.45f;
+        public const float HONEY_PER_UNASSIGNED_WORKER = 0.5f;
+
+        private IWorker[] workers = new IWorker[0];
+        private float eggs = 0;
+        private float unassignedWorkers = 3;
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged(string name)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        }
+
+        public string StatusReport { get; private set; }
+        public override float CostPerShift { get { return 2.15f; } }
+
         public Queen() : base("Queen")
         {
-            AssignBee("EggCare");
-            AssignBee("NectarCollector");
-            AssignBee("HoneyManufacturer");
+            AssignBee("Nectar Collector");
+            AssignBee("Honey Manufacturer");
+            AssignBee("Egg Care");
         }
-        protected override float CostPerShift { get { return 2.15f; } }
-        private float eggs;
-        private float unassignedWorkers;
-        private Bee[] workers;
-        const float EGGS_PER_SHIFT = 0.54f;
-        const float HONEY_PER_UNASSIGNED_WORKER = 0.5f;
 
-        /// <summary>
-        /// Расширяет массив workers на один элемент и добавляет ссылку Bee.
-        /// </summary>
-        /// <param name="worker"></param>
-        private void AddWorker(Bee worker)
+        private void AddWorker(IWorker worker)
         {
             if (unassignedWorkers >= 1)
             {
@@ -35,34 +42,60 @@ namespace BeehiveManagementSystem
                 workers[workers.Length - 1] = worker;
             }
         }
+
+        private void UpdateStatusReport()
+        {
+            StatusReport = $"Vault report:\n{HoneyVault.StatusReport}\n" +
+            $"\nEgg count: {eggs:0.0}\nUnassigned workers: {unassignedWorkers:0.0}\n" +
+            $"{WorkerStatus("Nectar Collector")}\n{WorkerStatus("Honey Manufacturer")}" +
+            $"\n{WorkerStatus("Egg Care")}\nTOTAL WORKERS: {workers.Length}";
+            OnPropertyChanged(StatusReport);
+        }
+
+        public void CareForEggs(float eggsToConvert)
+        {
+            if (eggs >= eggsToConvert)
+            {
+                eggs -= eggsToConvert;
+                unassignedWorkers += eggsToConvert;
+            }
+        }
+        private string WorkerStatus(string job)
+        {
+            int count = 0;
+            foreach (IWorker worker in workers)
+                if (worker.Job == job) count++;
+            string s = "s";
+            if (count == 1) s = "";
+            return $"{count} {job} bee{s}";
+        }
+
         public void AssignBee(string job)
         {
             switch (job)
             {
-                case "EggCare": AddWorker(new EggCare());
+                case "Nectar Collector":
+                    AddWorker(new NectarCollector());
                     break;
-                case "NectarCollector": AddWorker(new NectarCollector());
+                case "Honey Manufacturer":
+                    AddWorker(new HoneyManufacturer());
                     break;
-                case "HoneyManufacturer": AddWorker(new HoneyManufacturer());
+                case "Egg Care":
+                    AddWorker(new EggCare(this));
                     break;
             }
+            UpdateStatusReport();
         }
-        protected override DoJob()
+
+        protected override void DoJob()
         {
             eggs += EGGS_PER_SHIFT;
-            foreach (Bee worker in workers) WorkTheNextShif(worker);
-            HoneyVault.ConsumeHoney(HONEY_PER_UNASSIGNED_WORKER * workers.Length);
-        }
-        /// <summary>
-        /// Вылупляем из яиц муравьев епта
-        /// </summary>
-        /// <param name="eggsToConvert"></param>
-        public void CareForEggs (float eggsToConvert)
-        {
-            if (eggs >= eggsToConvert) unassignedWorkers+= eggs-= eggsToConvert;
+            foreach (IWorker worker in workers)
+            {
+                worker.WorkTheNextShift();
+            }
+            HoneyVault.ConsumeHoney(unassignedWorkers * HONEY_PER_UNASSIGNED_WORKER);
+            UpdateStatusReport();
         }
     }
 }
-
-
-

@@ -7,69 +7,50 @@ using System.Threading.Tasks;
 
 namespace BeehiveManagementSystem
 {
-    static class HoneyVault
+
+static class HoneyVault
     {
-        const float NECTAR_CONVERSION_RATIO = .19f; // Коэфф. конверсии нектара
-        const float LOW_LEVEL_WARNING = 10f;        // Предупреждение о низком уровне
+        public const float NECTAR_CONVERSION_RATIO = .19f;
+        public const float LOW_LEVEL_WARNING = 10f;
         private static float honey = 25f;
         private static float nectar = 100f;
-        public static string StatusReport 
-        { 
-            get 
-            {
-                string status = $"{honey:0.0} units of honey + { nectar: 0.0} units of nectar";
-                string warnings = "";
-                if (honey < LOW_LEVEL_WARNING) warnings +="LOW HONEY - ADD A HONEY MANUFACTURER";
-                if (nectar < LOW_LEVEL_WARNING) warnings += "LOW NECTAR - ADD A NECTAR MANUFACTURER";
-                return status + warnings;
-            }
+
+        public static void CollectNectar(float amount)
+        {
+            if (amount > 0f) nectar += amount;
         }
 
-        /// <summary>
-        /// Преобразует нектар в мед. д. Уменьшает поле nectar на указанную величину и увеличивает поле honey на величину amount × NECTAR_CONVERSION_RATIO
-        /// </summary>
-        /// <param name="amount"></param>
-        static void ConvertNectarToHoney (float amount )
+        public static void ConvertNectarToHoney(float amount)
         {
-            if (amount <= nectar)
-            {
-                nectar -= amount;
-                honey = NECTAR_CONVERSION_RATIO * amount;
-            }
-            else
-            {
-                honey = NECTAR_CONVERSION_RATIO * nectar;
-                nectar = 0;
-            }
+            float nectarToConvert = amount;
+            if (nectarToConvert > nectar) nectarToConvert = nectar;
+            nectar -= nectarToConvert;
+            honey += nectarToConvert * NECTAR_CONVERSION_RATIO;
         }
-       
-        /// <summary>
-        /// Метод получает параметр amount. Если значение параметра положительное, оно прибавляется к полю honey
-        /// </summary>
-        /// <param name="amount"></param>
-        static void CollectNectar(float amount)
+
+        public static bool ConsumeHoney(float amount)
         {
-            if (amount > 0) honey += amount;
-        }
-        
-        /// <summary>
-        /// определяет то, как пчелы потребляют мед для выполнения своих задач. Метод получает параметр amount.
-        ///Если он меньше текущего содержимого поля honey, то метод вычитает amount из honey и возвращает true; в противном случае возвращается false
-        /// </summary>
-        /// <param name="amount"></param>
-        /// <returns></returns>
-        public static bool ConsumeHoney (float amount)
-        {
-            if (amount < honey)
+            if (honey >= amount)
             {
                 honey -= amount;
                 return true;
             }
-            else return false; 
+            return false;
         }
 
-
-
-
+        public static string StatusReport
+        {
+            get
+            {
+                string status = $"{honey:0.0} units of honey\n" +
+                                $"{nectar:0.0} units of nectar";
+                string warnings = "";
+                if (honey < LOW_LEVEL_WARNING) warnings +=
+                                    "\nLOW HONEY - ADD A HONEY MANUFACTURER";
+                if (nectar < LOW_LEVEL_WARNING) warnings +=
+                                    "\nLOW NECTAR - ADD A NECTAR COLLECTOR";
+                return status + warnings;
+            }
+        }
     }
 }

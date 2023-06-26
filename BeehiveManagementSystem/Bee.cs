@@ -6,22 +6,25 @@ using System.Threading.Tasks;
 
 namespace BeehiveManagementSystem
 {
-    abstract class Bee
+    abstract class Bee : IWorker
     {
-        public string Job { get; private set; } // каждый класс передает свою работу с пом-ю конструктора
-       protected virtual float CostPerShift { get; private set; } // позволяет каждому субклассу Bee определить количество меда, потребляемого им за смену
+        public virtual float CostPerShift { get; }
+        public string Job { get; private set; }
 
         public Bee(string job)
         {
             Job = job;
         }
 
-       protected void WorkTheNextShif(Bee worker)
+        public void WorkTheNextShift()
         {
-            bool c = HoneyVault.ConsumeHoney(HoneyConsumed);
-            if (c == true) DoJob(); 
+            if (HoneyVault.ConsumeHoney(CostPerShift))
+            {
+                DoJob();
+            }
         }
-        protected virtual DoJob() { }
 
+        protected virtual void DoJob() { }
     }
+
 }
